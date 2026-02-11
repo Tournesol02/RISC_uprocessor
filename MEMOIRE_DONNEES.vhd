@@ -5,25 +5,13 @@
 -- Create Date: 10/17/2025 10:16:24 AM
 -- Design Name: 
 -- Module Name: MEMOIRE_DONNEES - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Project Name: RISC Microprocesseur
 ----------------------------------------------------------------------------------
-
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
-
 
 entity MEMOIRE_DONNEES is
     Port ( ADDR : in STD_LOGIC_VECTOR (7 downto 0);
@@ -35,20 +23,19 @@ entity MEMOIRE_DONNEES is
 end MEMOIRE_DONNEES;
 
 architecture Behavioral of MEMOIRE_DONNEES is
-    type memD is array(0 to 63) of STD_LOGIC_VECTOR(7 downto 0);
-    signal memD_array : memD;
+    type memD is array(0 to 255) of STD_LOGIC_VECTOR(7 downto 0); -- Notre memoire de données est de 256 lignes de 8bits.
+    signal memD_array : memD := (others => x"00");
 begin
-    process(RW, CLK, RST)
+
+    process(CLK, RST)
     begin
         if rising_edge(CLK) then
-            if RST = '0' then 
-                memD_array <= (others => x"00");
-                SORTIE <= x"00";
-            elsif RW = '1' then -- Lecture
-                SORTIE <= memD_array(to_integer(unsigned(ADDR)));
-            elsif RW = '0' then -- Ecriture
-                memD_array(to_integer(unsigned(ADDR))) <= ENTREE;
+            if (RST = '0') then 
+                memD_array <= (others => x"00"); -- Cas de RESET
+            elsif (RW = '0') then -- Cas d'ecriture
+                memD_array(to_integer(unsigned(ADDR))) <= ENTREE; -- Nous prenons l'entrée dans l'adresse voulue.
             end if; 
         end if;
     end process;
+    SORTIE <= memD_array(to_integer(unsigned(ADDR))); -- Lecture de l'adresse et envoyé en sortie.
 end Behavioral;

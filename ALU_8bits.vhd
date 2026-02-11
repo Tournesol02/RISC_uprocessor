@@ -5,23 +5,16 @@
 -- Create Date: 25.09.2025 17:22:28
 -- Design Name: MON_ALU
 -- Module Name: ALU_8bits - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Project Name: RISC Microprocesseur
 ----------------------------------------------------------------------------------
 
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
 
 entity ALU_8bits is
     Port ( 
@@ -36,66 +29,47 @@ entity ALU_8bits is
 end ALU_8bits;
 
 architecture Behavioral of ALU_8bits is
-    -- OPCODE, en suivant le code d'operation donné
-    constant ADD        : STD_LOGIC_VECTOR (7 downto 0) := X"01"; -- On est donnè deux hex, donc 8 bits
+    -- OPCODE, en suivant le code d'operation donné. Notre OPCODE necessite 2 hex, alors 8bits alloués.
+    constant AJ         : STD_LOGIC_VECTOR (7 downto 0) := X"01"; 
     constant MUL        : STD_LOGIC_VECTOR (7 downto 0) := X"02";
-    constant SUB        : STD_LOGIC_VECTOR (7 downto 0) := X"03";
+    constant SOU        : STD_LOGIC_VECTOR (7 downto 0) := X"03";
     constant ET         : STD_LOGIC_VECTOR (7 downto 0) := X"14";
     constant OU         : STD_LOGIC_VECTOR (7 downto 0) := X"15";
     constant OUX        : STD_LOGIC_VECTOR (7 downto 0) := X"16";
     constant NON        : STD_LOGIC_VECTOR (7 downto 0) := X"17";
+    constant COP        : STD_LOGIC_VECTOR (7 downto 0) := X"05";
+    constant AFC        : STD_LOGIC_VECTOR (7 downto 0) := X"06";
+    constant CRD        : STD_LOGIC_VECTOR (7 downto 0) := X"07";
+    constant SRD        : STD_LOGIC_VECTOR (7 downto 0) := X"08";
 
-    -- on met certains de nos valeurs dans un auxilliaire
-    signal aux : unsigned(15 downto 0);
+    -- Notre signal auxiliaire est utilisé pour gérér les fanions: Carry, Depassement. 
+    signal aux : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    
 begin
+    CARRY <= aux(8); -- Le chiffre le plus grand possible en ajoutant deux chiffres 8bits est de 9bits, alors le bit nr. 8 sera à '1'.
+    NEGATIF <= '1' when (A < B and OPCODE = SOU) else '0'; -- 
+    DEPASSEMENT <= '1' when (aux(15 downto 8) /= "00000000" and OPCODE = MUL) else '0'; -- Depassement dès qu'on aura au moins un '1' dans les bits 8->15
     process(A,B,OPCODE)
-    variable aux_var : unsigned(15 downto 0);
         begin
-        
-        -- default values
-        CARRY <= '0';
-        NEGATIF <= '0';
-        DEPASSEMENT <= '0';
-        S <= (others => '0');
-        
-        case OPCODE is 
-            when X"01" => --Sommateur
-                aux_var := RESIZE(unsigned(A),16) + RESIZE(unsigned(B),16);
-                CARRY <= aux_var(8);
-                S <= STD_LOGIC_VECTOR(aux_var(7 downto 0));
-            when X"02" => -- Multiplicateur
-                -- Si le bit de poid le plus fort vaut '1' alors un chiffre negative
-                aux_var := unsigned(A) * unsigned(B);
-                S <= STD_LOGIC_VECTOR(aux_var(7 downto 0));
-                if aux_var(15 downto 8) /= "00000000" then --Regarde si la produit entiere vaut plus que 8bits
-                    DEPASSEMENT <= '1';
-                else
-                    DEPASSEMENT <= '0';
-                end if;
-            when X"03" => -- Soustraction
-                if (A < B) then
-                    NEGATIF <= '1';
-                    S <= STD_LOGIC_VECTOR(unsigned(B) - unsigned(A));
-                else
-                    NEGATIF <= '0';
-                    S <= STD_LOGIC_VECTOR(unsigned(A) - unsigned(B));
-                end if;
-            when X"14" => -- ET
-                S <= STD_LOGIC_VECTOR(unsigned(A) AND unsigned(B));
-            when X"15" => -- OU
-                S <= STD_LOGIC_VECTOR(unsigned(A) OR unsigned(B));
-            when X"16" => -- OUX
-                S <= STD_LOGIC_VECTOR(unsigned(A) XOR unsigned(B));
-            when X"17" => -- NON
-                S <= NOT(A);
+        case OPCODE is         
+            when AJ => -- Sommateur
+                aux <= "0000000" & (('0' & A) + ('0' & B));
+            when MUL => -- Multiplicateur
+                aux <= (A * B);
+            when SOU => -- Soustraction
+                aux <= X"00" & (A - B);
+            when ET => -- ET
+                aux <= X"00" & (A AND B);
+            when OU => -- OU
+                aux <= X"00" & (A OR B);
+            when OUX => -- OUX
+                aux <= X"00" & (A XOR B);               
+            when NON => -- NON
+                aux <= X"00" & NOT(A);
             when others =>
-                S           <= (others => '0');
-                CARRY       <= '0';
-                NEGATIF     <= '0';
-                DEPASSEMENT <= '0';
         end case;
     end process;
-
+ S <= aux(7 downto 0); -- Recuperation en sortie
 end Behavioral;
 
 
